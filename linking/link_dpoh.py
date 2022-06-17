@@ -4,9 +4,13 @@ import re
 from unidecode import unidecode
 
 import nama
-from nama.embedding_similarity import load
+from nama.embedding_similarity import load_similarity_model
 
 from canlobby.config import data_dir
+
+# Use pre-trained string similarity model to predict likely matches
+sim = load_similarity_model(nama.root_dir/'models'/'nama_base.bin')
+sim.to('cuda:0')
 
 
 # load DPOH names
@@ -16,10 +20,10 @@ dpoh_df = pd.read_csv(Path(data_dir)/'raw_data'/'communications_ocl_cal'/'Commun
 dpoh_df = dpoh_df.dropna(subset=['DPOH_FIRST_NM_PRENOM_TCPD','DPOH_LAST_NM_TCPD'])
 
 # Create a combined first-last name variable
-dpoh_df['first_last'] = dpoh_df['DPOH_FIRST_NM_PRENOM_TCPD'] + ' ' + dpoh_df['DPOH_LAST_NM_TCPD']
+dpoh_df['dpoh_raw'] = dpoh_df['DPOH_FIRST_NM_PRENOM_TCPD'] + ' ' + dpoh_df['DPOH_LAST_NM_TCPD']
 
 # Create a new matcher for the names
-matcher = nama.Matcher(dpoh_df['first_last'])
+matcher = nama.Matcher(dpoh_df['dpoh_raw'])
 
 
 # Match names based on simple string cleaning
@@ -39,10 +43,6 @@ def clean_name(s):
 matcher = matcher.unite(clean_name)
 
 
-# Use pre-trained string similarity model to predict likely matches
-sim = load(nama.root_dir/'models'/'nama_large.bin')
-sim.to('cuda:1')
-
 embeddings = sim.embed(matcher)
 
 pred = embeddings.predict(threshold=0.8)
@@ -52,10 +52,10 @@ matcher = matcher.unite(pred)
 
 
 # Create simplified linking table
-linking_df = dpoh_df[['COMLOG_ID','first_last']].copy()
-linking_df['dpoh_clean'] = [matcher[s] for s in linking_df['first_last']]
+linking_df = dpoh_df[['COMLOG_ID','dpoh_raw']].copy()
+linking_df['dpoh_clean'] = [matcher[s] for s in linking_df['dpoh_raw']]
 
 linking_df.to_csv(Path(data_dir)/'linking'/'dpoh_comlog_linking.csv')
 
 # Review cases where the raw name differs from the clean name
-linking_df.query('first_last != dpoh_clean').sample(50)
+linking_df.query('dpoh_raw != dpoh_clean').sample(50)
