@@ -79,7 +79,7 @@ matcher = embeddings.predict(
 linking_df = clients_df[['COMLOG_ID','client_raw']].copy()
 linking_df['client_clean'] = [matcher[s] for s in linking_df['client_raw']]
 
-linking_df.to_csv(Path(data_dir)/'linking'/'client_comlog_linking.csv')
+linking_df.to_csv(Path(data_dir)/'processed'/'linking'/'client_comlog_linking.csv')
 
 # Review cases where the raw name differs from the clean name
 linking_df.query('client_raw != client_clean').sample(50)

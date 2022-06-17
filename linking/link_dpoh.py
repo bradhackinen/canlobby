@@ -55,7 +55,7 @@ matcher = matcher.unite(pred)
 linking_df = dpoh_df[['COMLOG_ID','dpoh_raw']].copy()
 linking_df['dpoh_clean'] = [matcher[s] for s in linking_df['dpoh_raw']]
 
-linking_df.to_csv(Path(data_dir)/'linking'/'dpoh_comlog_linking.csv')
+linking_df.to_csv(Path(data_dir)/'processed'/'linking'/'dpoh_comlog_linking.csv')
 
 # Review cases where the raw name differs from the clean name
 linking_df.query('dpoh_raw != dpoh_clean').sample(50)
