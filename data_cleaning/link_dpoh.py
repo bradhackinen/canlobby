@@ -4,12 +4,13 @@ import re
 from unidecode import unidecode
 
 import nama
+from nama.config import data_dir as nama_dir
 from nama.embedding_similarity import load_similarity_model
 
 from canlobby.config import data_dir
 
 # Use pre-trained string similarity model to predict likely matches
-sim = load_similarity_model(nama.root_dir/'models'/'nama_base.bin')
+sim = load_similarity_model(Path(nama_dir)/'models'/'nama_base.bin')
 sim.to('cuda:0')
 
 
@@ -55,7 +56,7 @@ matcher = matcher.unite(pred)
 linking_df = dpoh_df[['COMLOG_ID','dpoh_raw']].copy()
 linking_df['dpoh_clean'] = [matcher[s] for s in linking_df['dpoh_raw']]
 
-linking_df.to_csv(Path(data_dir)/'processed'/'linking'/'dpoh_comlog_linking.csv')
+linking_df.to_csv(Path(data_dir)/'cleaned_data'/'linking'/'dpoh_comlog_linking.csv',index=False)
 
 # Review cases where the raw name differs from the clean name
 linking_df.query('dpoh_raw != dpoh_clean').sample(50)

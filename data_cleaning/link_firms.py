@@ -4,33 +4,39 @@ import re
 from unidecode import unidecode
 
 import nama
+from nama.config import data_dir as nama_dir
 from nama.embedding_similarity import load_similarity_model
 
 from canlobby.config import data_dir
 
 # Use pre-trained string similarity model to predict likely matches
-sim = load_similarity_model(nama.root_dir/'models'/'nama_base.bin')
+sim = load_similarity_model(Path(nama_dir)/'models'/'nama_base.bin')
 sim.to('cuda:0')
 
-# load client names from primary export
-com_df = pd.read_csv(Path(data_dir)/'raw_data'/'communications_ocl_cal'/'Communication_PrimaryExport.csv')
+
+# load DPOH names
+reg_df = pd.read_csv(Path(data_dir)/'raw_data'/'registrations_enregistrements_ocl_cal'/'Registration_PrimaryExport.csv')
+
+# # Drop rows with missing name (seems like there are some blank rows for some reason)
+# reg_df = reg_df.dropna(subset=['EN_FIRM_NM_FIRME_AN','FR_FIRM_NM_FIRME'],how='all')
+#
 
 # Take the french version of the name if no english version is available
-clients_df = com_df[['COMLOG_ID']].copy()
-clients_df['client_raw'] = com_df['EN_CLIENT_ORG_CORP_NM_AN'] \
-                        .fillna(com_df['FR_CLIENT_ORG_CORP_NM'])
+firms_df = reg_df[['REG_ID_ENR']].copy()
+firms_df['firm_raw'] = reg_df['EN_FIRM_NM_FIRME_AN'] \
+                        .fillna(reg_df['FR_FIRM_NM_FIRME'])
 
 # Drop any rows that still have a missing name
-clients_df = clients_df[['COMLOG_ID','client_raw']] \
-                    .drop_duplicates() \
-                    .dropna()
+firms_df = firms_df \
+            .drop_duplicates() \
+            .dropna()
 
 # load the manually constructed match data
 manual = nama.read_csv(Path(data_dir)/'raw_data'/'linking'/'canlobby_train.csv')
 
 matcher = manual.copy()
-for c in ['EN_CLIENT_ORG_CORP_NM_AN','FR_CLIENT_ORG_CORP_NM']:
-    matcher = matcher.add_strings(com_df[c].dropna())
+for c in ['EN_FIRM_NM_FIRME_AN','FR_FIRM_NM_FIRME']:
+    matcher = matcher.add_strings(reg_df[c].dropna())
 
 
 # Match names based on simple string cleaning
@@ -51,10 +57,10 @@ matcher = matcher.unite(clean_name)
 
 
 # Match french and english versions of each name
-fr_en_names_df = com_df[['EN_CLIENT_ORG_CORP_NM_AN','FR_CLIENT_ORG_CORP_NM']] \
+fr_en_names_df = reg_df[['EN_FIRM_NM_FIRME_AN','FR_FIRM_NM_FIRME']] \
                     .drop_duplicates() \
                     .dropna() \
-                    .query('EN_CLIENT_ORG_CORP_NM_AN != FR_CLIENT_ORG_CORP_NM')
+                    .query('EN_FIRM_NM_FIRME_AN != FR_FIRM_NM_FIRME')
 
 matcher = matcher.unite(fr_en_names_df.values)
 
@@ -76,10 +82,14 @@ matcher = embeddings.predict(
 
 
 # Create simplified linking table
-linking_df = clients_df[['COMLOG_ID','client_raw']].copy()
-linking_df['client_clean'] = [matcher[s] for s in linking_df['client_raw']]
+linking_df = firms_df[['REG_ID_ENR','firm_raw']].copy()
+linking_df['firm_clean'] = [matcher[s] for s in linking_df['firm_raw']]
 
-linking_df.to_csv(Path(data_dir)/'processed'/'linking'/'client_comlog_linking.csv')
+linking_df = linking_df[~linking_df['firm_clean'].isin(['Self','Self-employed','None'])]
+
+linking_df.to_csv(Path(data_dir)/'cleaned_data'/'linking'/'firm_registration_linking.csv',index=False)
 
 # Review cases where the raw name differs from the clean name
-linking_df.query('client_raw != client_clean').sample(50)
+linking_df.query('firm_raw != firm_clean').sample(50)
+
+matcher.to_df().tail(50)
