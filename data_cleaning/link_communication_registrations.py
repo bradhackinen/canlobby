@@ -47,4 +47,4 @@ df[['in_window','effective','dt']].mean()
 
 df = df[['COMLOG_ID','REG_ID_ENR','dt','effective','in_window']]
 
-df.to_csv(Path(data_dir)/'cleaned_data'/'linking'/'communication_registration_linking.csv',index=False)
+df.to_csv(Path(data_dir)/'cleaned_data'/'linking'/'com_reg_linking.csv',index=False)

@@ -12,10 +12,10 @@ com_df = pd.read_csv(Path(data_dir)/'raw_data'/'communications_ocl_cal'/'Communi
 dpoh_df = pd.read_csv(Path(data_dir)/'raw_data'/'communications_ocl_cal'/'Communication_DpohExport.csv')
 
 # Load linking files
-com_reg_linking_df = pd.read_csv(Path(data_dir)/'processed'/'linking'/'communication_registration_linking.csv')
-client_linking_df = pd.read_csv(Path(data_dir)/'processed'/'linking'/'client_comlog_linking.csv')
-dpoh_linking_df = pd.read_csv(Path(data_dir)/'processed'/'linking'/'dpoh_comlog_linking.csv')
-firm_linking_df = pd.read_csv(Path(data_dir)/'processed'/'linking'/'firm_registration_linking.csv')
+com_reg_linking_df = pd.read_csv(Path(data_dir)/'cleaned_data'/'linking'/'com_reg_linking.csv')
+client_linking_df = pd.read_csv(Path(data_dir)/'cleaned_data'/'linking'/'client_com_linking.csv')
+dpoh_linking_df = pd.read_csv(Path(data_dir)/'cleaned_data'/'linking'/'dpoh_com_linking.csv')
+firm_linking_df = pd.read_csv(Path(data_dir)/'cleaned_data'/'linking'/'firm_reg_linking.csv')
 
 # Build lobbyist-firm-dpoh contact data
 contacts_df = com_df.copy()
@@ -58,7 +58,7 @@ contacts_df = contacts_df[[
                 ]]
 
 
-contacts_df.to_csv(Path(data_dir)/'cleaned_data'/'contacts.csv')
+contacts_df.to_csv(Path(data_dir)/'cleaned_data'/'contacts.csv',index=False)
 
 
 def mode(x):
@@ -83,4 +83,4 @@ annual_contacts_df = contacts_df \
                     .reset_index() \
                     .rename(columns={'comlog_id':'n'})
 
-annual_contacts_df.to_csv(Path(data_dir)/'cleaned_data'/'annual_contacts.csv')
+annual_contacts_df.to_csv(Path(data_dir)/'cleaned_data'/'annual_contacts.csv',index=False)
