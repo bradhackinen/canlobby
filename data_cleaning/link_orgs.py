@@ -3,6 +3,7 @@ import pandas as pd
 import re
 from unidecode import unidecode
 import json
+import numpy as np
 
 import nama
 from nama.config import data_dir as nama_dir
@@ -88,13 +89,15 @@ if config.nama_fp16:
     # Use 16bit floats for higher speed (shouldn't affect accuracy)
     embeddings.half()
 
-# Predict matches
-predicted_matcher = embeddings.predict(
+predicted_matcher,united_df = embeddings.predict(
                                 threshold=0.5,
-                                group_threshold=0.6,
+                                group_threshold=0.5,
                                 always_match=base_matcher,
                                 never_match=never_match,
+                                return_united=True,
                                 )
+
+united_df.to_csv(Path(config.data_dir)/'cleaned_data'/'linking'/'org_match_united_pairs.csv')
 
 # Create linking tables
 predicted_matcher.to_csv(Path(config.data_dir)/'cleaned_data'/'linking'/'org_matches.csv')
@@ -126,3 +129,23 @@ client_com_df = client_com_df.dropna()
 client_com_df['client_clean'] = [predicted_matcher[s] for s in client_com_df['client_raw']]
 
 client_com_df.to_csv(Path(config.data_dir)/'cleaned_data'/'linking'/'client_com_linking.csv',index=False)
+
+
+
+# Create data for review
+_,review_df = embeddings.predict(
+                                threshold=0.3,
+                                group_threshold=0.3,
+                                always_match=base_matcher,
+                                never_match=never_match,
+                                return_united=True,
+                                )
+
+review_df = (review_df
+            .query('always_match==False')
+            .assign(priority=lambda x: (np.sqrt(x['n_i']*x['n_j'])*x['score']*(1-x['score'])).round(2))
+            .sort_values('priority',ascending=False)
+            .query('priority > 1')
+            .assign(is_match=np.nan))
+
+review_df.to_csv(Path(config.data_dir)/'cleaned_data'/'linking'/'org_match_review.csv')
