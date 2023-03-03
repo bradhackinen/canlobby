@@ -97,7 +97,7 @@ predicted_matcher,united_df = embeddings.predict(
                                 return_united=True,
                                 )
 
-united_df.to_csv(Path(config.data_dir)/'cleaned_data'/'linking'/'org_match_united_pairs.csv')
+united_df.to_csv(Path(config.data_dir)/'cleaned_data'/'linking'/'org_match_united_pairs.csv',index=False)
 
 # Create linking tables
 predicted_matcher.to_csv(Path(config.data_dir)/'cleaned_data'/'linking'/'org_matches.csv')
@@ -148,4 +148,4 @@ review_df = (review_df
             .query('priority > 1')
             .assign(is_match=np.nan))
 
-review_df.to_csv(Path(config.data_dir)/'cleaned_data'/'linking'/'org_match_review.csv')
+review_df.to_csv(Path(config.data_dir)/'cleaned_data'/'linking'/'org_match_review.csv',index=False)
