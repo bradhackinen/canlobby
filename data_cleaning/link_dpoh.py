@@ -52,6 +52,22 @@ def clean_name(s):
 matcher = base_matcher.unite(clean_name)
 
 
+
+manual_pairs_df = pd.read_csv(Path(config.data_dir)/'raw_data'/'linking'/'dpoh_match_review_SR_Mar4.csv')
+
+
+# Add manual alway_match information
+always_match_pairs_df = manual_pairs_df[~manual_pairs_df['is_match'].isin(['n','?'])]
+never_match_pairs_df = manual_pairs_df[manual_pairs_df['is_match']=='n']
+
+base_matcher = base_matcher.unite(always_match_pairs_df[['i','j']].values)
+
+
+# Add manual never_match information
+never_match = [list(pair) for pair in never_match_pairs_df[['i','j']].values]
+
+
+
 # Use pre-trained string similarity model to predict likely matches
 sim = load_similarity_model(Path(nama_dir)/'models'/'nama_base.bin')
 sim.to(config.nama_device)
@@ -72,8 +88,9 @@ predicted_matcher,united_df = embeddings.predict(
                                 threshold=0.5,
                                 group_threshold=0.5,
                                 always_match=base_matcher,
-                                never_match=None,
+                                never_match=never_match,
                                 return_united=True,
+                                always_never_conflicts='ignore'
                                 )
 
 united_df.to_csv(Path(config.data_dir)/'cleaned_data'/'linking'/'dpoh_match_united_pairs.csv',index=False)
@@ -95,13 +112,13 @@ _,review_df = embeddings.predict(
                                 always_match=base_matcher,
                                 never_match=None,
                                 return_united=True,
+                                always_never_conflicts='ignore'
                                 )
 
 review_df = (review_df
             .query('always_match==False')
             .assign(priority=lambda x: (np.sqrt(x['n_i']*x['n_j'])*x['score']*(1-x['score'])).round(2))
-            .sort_values('priority',ascending=False)
-            .query('priority > 1')
+            .query('score < 0.8')
             .assign(is_match=np.nan))
 
 review_df.to_csv(Path(config.data_dir)/'cleaned_data'/'linking'/'dpoh_match_review.csv',index=False)
